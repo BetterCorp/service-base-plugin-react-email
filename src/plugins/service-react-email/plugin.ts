@@ -54,7 +54,11 @@ export interface Events extends BSBPluginEvents {
 
 const secSchema = z.object({
   devui: z.boolean().optional().default(false),
-  devuiPath: z.string().optional().default("/"),
+  devuiPath: z
+    .string()
+    .regex(/^(.+||)\/$/g)
+    .optional()
+    .default("/"),
   autoLoadThemes: z
     .array(
       z.object({
@@ -199,9 +203,9 @@ export class Plugin extends BSBService<Config, Events> {
     return await theme.handler(mailId, lang, validMeta.data);
   };
 
-  private getTypedPath<TPath extends string>(path: TPath) {
+  private getTypedPath<TPath extends string>(path?: TPath) {
     type RPath = `/${TPath}`;
-    return ((this.config.devuiPath ?? "/") + path) as RPath;
+    return ((this.config.devuiPath ?? "/") + (path ?? "")) as RPath;
   }
   public async init(): Promise<void> {
     await this.events.onReturnableEvent("GetThemes", async () => {
@@ -235,14 +239,19 @@ export class Plugin extends BSBService<Config, Events> {
           reply.status(404).send();
         }
       );
-      this.fastify.get(this.getTypedPath(""), async (reply) => {
+      this.fastify.get(this.getTypedPath(), async (reply) => {
         reply.header("Content-Type", "text/html");
         return reply.send(
           `<html>${headCode}<body>` +
             `<h1>Themes: </h1><br/>` +
             `<ul>` +
             Object.keys(this.knownThemes)
-              .map((themeId) => `<li><a href="/${themeId}">${themeId}</a></li>`)
+              .map(
+                (themeId) =>
+                  `<li><a href="${this.getTypedPath(
+                    themeId
+                  )}">${themeId}</a></li>`
+              )
               .join("") +
             `</ul>` +
             `</body></html>`
@@ -253,17 +262,19 @@ export class Plugin extends BSBService<Config, Events> {
         async (reply, params) => {
           reply.header("Content-Type", "text/html");
           if (this.knownThemes[params.themeId] === undefined) {
-            return reply.redirect("/");
+            return reply.redirect(this.getTypedPath());
           }
           return reply.send(
             `<html>${headCode}<body>` +
-              `<a href="/">BACK</a>` +
+              `<a href="${this.getTypedPath()}">BACK</a>` +
               `<h1>Templates for theme [${params.themeId}]: </h1><br/>` +
               `<ul>` +
               (this.knownThemes[params.themeId]?.templates ?? [])
                 .map(
                   (template) =>
-                    `<li><a href="/${params.themeId}/${template.id}">${template.name}</a></li>`
+                    `<li><a href="${this.getTypedPath(
+                      params.themeId + "/" + template.id
+                    )}">${template.name}</a></li>`
                 )
                 .join("") +
               `</ul>` +
@@ -281,9 +292,11 @@ export class Plugin extends BSBService<Config, Events> {
         const refData = data ?? template.exampleData;
         return (
           `<html>${headCode}<body>` +
-          `<a href="/${themeId}">BACK</a>` +
+          `<a href="${this.getTypedPath(themeId)}">BACK</a>` +
           `<h1>Template [${template.name}] for theme [${themeId}]: </h1><br/>` +
-          `<form method="post" action="/${themeId}/${emailId}">` +
+          `<form method="post" action="${this.getTypedPath(
+            themeId + "/" + emailId
+          )}">` +
           Object.keys(refData)
             .map(
               (key) =>
@@ -300,13 +313,13 @@ export class Plugin extends BSBService<Config, Events> {
         this.getTypedPath(":themeId/:emailId/"),
         async (reply, params) => {
           if (this.knownThemes[params.themeId] === undefined) {
-            return reply.redirect(`/`);
+            return reply.redirect(this.getTypedPath());
           }
           const template = this.knownThemes[params.themeId].templates.find(
             (t) => t.id === params.emailId
           );
           if (template === undefined) {
-            return reply.redirect(`/${params.themeId}`);
+            return reply.redirect(this.getTypedPath(params.themeId));
           }
           reply.header("Content-Type", "text/html");
           return reply.send(
@@ -324,13 +337,13 @@ export class Plugin extends BSBService<Config, Events> {
         this.getTypedPath(":themeId/:emailId/"),
         async (reply, params, query, body) => {
           if (this.knownThemes[params.themeId] === undefined) {
-            return reply.redirect(`/`);
+            return reply.redirect(this.getTypedPath());
           }
           const template = this.knownThemes[params.themeId].templates.find(
             (t) => t.id === params.emailId
           );
           if (template === undefined) {
-            return reply.redirect(`/${params.themeId}`);
+            return reply.redirect(this.getTypedPath(params.themeId));
           }
           reply.header("Content-Type", "text/html");
           let generatedTemplate: GeneratedMail = {
