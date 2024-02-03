@@ -101,9 +101,15 @@ export class ReactEmail extends BSBServiceClient<Plugin> {
   /// Registers all email templates in the given plugin
   public async registerEmailTemplates(templatesDir: string) {
     await this.doRegister();
+    this.log.debug("Registering all templates in {templatesDir}", {
+      templatesDir,
+    });
     for (const templateFile of readdirSync(templatesDir).filter(
-      (f) => f.endsWith(".tsx") || f.endsWith(".jsx")
+      (f) =>
+        [".tsx", ".jsx", ".ts", ".js"].filter((ext) => f.endsWith(ext)).length >
+        0
     )) {
+      this.log.debug("Importing template {templateFile}", { templateFile });
       const importedFile = await import(join(templatesDir, templateFile));
       if (importedFile.Template === undefined) {
         this.log.warn(
