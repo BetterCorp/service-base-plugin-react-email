@@ -196,19 +196,16 @@ export class Plugin extends BSBService<Config, Events> {
       const headCode =
         '<head><meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0"></head>';
       await this.fastify.register(fastifyFormbody, {});
-      this.fastify.get("/favicon.ico", async (reply, params) => {
+      this.fastify.get("/favicon.ico", async (reply) => {
         reply.status(404).send();
       });
-      this.fastify.get("/:themeId/favicon.ico", async (reply, params) => {
+      this.fastify.get("/:themeId/favicon.ico", async (reply) => {
         reply.status(404).send();
       });
-      this.fastify.get(
-        "/:themeId/:emailId/favicon.ico",
-        async (reply, params) => {
-          reply.status(404).send();
-        }
-      );
-      this.fastify.get("//", async (reply, params) => {
+      this.fastify.get("/:themeId/:emailId/favicon.ico", async (reply) => {
+        reply.status(404).send();
+      });
+      this.fastify.get("//", async (reply) => {
         reply.header("Content-Type", "text/html");
         return reply.send(
           `<html>${headCode}<body>` +

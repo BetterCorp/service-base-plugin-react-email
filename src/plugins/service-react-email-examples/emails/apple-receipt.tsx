@@ -23,10 +23,9 @@ export class Template extends ReactEmailTemplate {
   public langs: string[] = ["en"];
   public metaSchema: z.ZodType<any, any, any> = z.object({});
   public exampleData: z.TypeOf<this["metaSchema"]> = {};
-  public async handler(
-    lang: string,
-    meta: z.TypeOf<this["metaSchema"]>
-  ): Promise<GeneratedMail> {
+  public async handler(): //lang: string,
+  //meta: z.TypeOf<this["metaSchema"]>
+  Promise<GeneratedMail> {
     const template = (
       <Html>
         <Head />

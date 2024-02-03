@@ -167,10 +167,9 @@ export class ReactEmailTemplateRef extends ReactEmailTemplate {
   public readonly langs: Array<string> = [];
   public readonly metaSchema: z.ZodSchema<any, any, any> = z.any();
   public readonly exampleData: z.infer<this["metaSchema"]> = {};
-  public handler(
-    lang: string,
-    meta: z.infer<this["metaSchema"]>
-  ): Promise<GeneratedMail> {
+  public handler(): //lang: string,
+  //meta: z.infer<this["metaSchema"]>
+  Promise<GeneratedMail> {
     throw new BSBError("NOT_IMPLEMENTED", "Handler not implemented");
   }
 }

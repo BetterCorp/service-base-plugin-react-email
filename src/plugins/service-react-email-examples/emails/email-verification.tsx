@@ -25,7 +25,7 @@ export class Template extends ReactEmailTemplate {
       .string()
       .min(5)
       .max(10)
-      .regex(/^[0-9A-Za-z\-]+$/),
+      .regex(/^[0-9A-Za-z-]+$/),
     headerColour: z.string(),
     companyLogo: z.string().optional(),
     companyName: z.string(),
