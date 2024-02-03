@@ -3,6 +3,8 @@ default:
     email:
       plugin: service-react-email
       enabled: true
+      config:
+        devui: true
     email-examples:
       plugin: service-react-email-examples
       enabled: true

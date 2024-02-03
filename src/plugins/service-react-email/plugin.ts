@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { Fastify } from "@bettercorp/service-base-plugin-fastify";
 import { fastifyFormbody } from "@fastify/formbody";
+import { ReactEmail } from "./index";
 
 export type GeneratedMail = {
   subject: string;
@@ -51,7 +52,18 @@ export interface Events extends BSBPluginEvents {
   emitBroadcast: ServiceEventsBase;
 }
 
-const secSchema = z.object({});
+const secSchema = z.object({
+  devui: z.boolean().optional().default(false),
+  devuiPath: z.string().optional().default("/"),
+  autoLoadThemes: z
+    .array(
+      z.object({
+        id: z.string(),
+        pathToTemplates: z.string(),
+      })
+    )
+    .optional(),
+});
 
 export class Config extends BSBPluginConfig<typeof secSchema> {
   validationSchema = secSchema;
@@ -120,10 +132,18 @@ export class Plugin extends BSBService<Config, Events> {
   dispose?(): void;
   run?(): void | Promise<void>;
   private fastify!: Fastify;
+  private autoLoadedThemes: Array<ReactEmail> = [];
   constructor(config: BSBServiceConstructor) {
     super(config);
-    if (this.mode === "development") {
+    if (this.mode === "development" && this.config.devui !== false) {
       this.fastify = new Fastify(this);
+    }
+    if (this.config.autoLoadThemes) {
+      for (const theme of this.config.autoLoadThemes) {
+        this.autoLoadedThemes.push(
+          new ReactEmail(this, theme.id, theme.pathToTemplates)
+        );
+      }
     }
   }
 
@@ -179,6 +199,10 @@ export class Plugin extends BSBService<Config, Events> {
     return await theme.handler(mailId, lang, validMeta.data);
   };
 
+  private getTypedPath<TPath extends string>(path: TPath) {
+    type RPath = `/${TPath}`;
+    return ((this.config.devuiPath ?? "/") + path) as RPath;
+  }
   public async init(): Promise<void> {
     await this.events.onReturnableEvent("GetThemes", async () => {
       return Object.keys(this.knownThemes);
@@ -192,20 +216,26 @@ export class Plugin extends BSBService<Config, Events> {
     );
 
     // DEV MODE ONLY
-    if (this.mode === "development") {
+    if (this.mode === "development" && this.config.devui !== false) {
       const headCode =
         '<head><meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0"></head>';
       await this.fastify.register(fastifyFormbody, {});
-      this.fastify.get("/favicon.ico", async (reply) => {
+      this.fastify.get(this.getTypedPath("favicon.ico"), async (reply) => {
         reply.status(404).send();
       });
-      this.fastify.get("/:themeId/favicon.ico", async (reply) => {
-        reply.status(404).send();
-      });
-      this.fastify.get("/:themeId/:emailId/favicon.ico", async (reply) => {
-        reply.status(404).send();
-      });
-      this.fastify.get("//", async (reply) => {
+      this.fastify.get(
+        this.getTypedPath(":themeId/favicon.ico"),
+        async (reply) => {
+          reply.status(404).send();
+        }
+      );
+      this.fastify.get(
+        this.getTypedPath(":themeId/:emailId/favicon.ico"),
+        async (reply) => {
+          reply.status(404).send();
+        }
+      );
+      this.fastify.get(this.getTypedPath(""), async (reply) => {
         reply.header("Content-Type", "text/html");
         return reply.send(
           `<html>${headCode}<body>` +
@@ -218,26 +248,29 @@ export class Plugin extends BSBService<Config, Events> {
             `</body></html>`
         );
       });
-      this.fastify.get("/:themeId/", async (reply, params) => {
-        reply.header("Content-Type", "text/html");
-        if (this.knownThemes[params.themeId] === undefined) {
-          return reply.redirect("/");
+      this.fastify.get(
+        this.getTypedPath(":themeId/"),
+        async (reply, params) => {
+          reply.header("Content-Type", "text/html");
+          if (this.knownThemes[params.themeId] === undefined) {
+            return reply.redirect("/");
+          }
+          return reply.send(
+            `<html>${headCode}<body>` +
+              `<a href="/">BACK</a>` +
+              `<h1>Templates for theme [${params.themeId}]: </h1><br/>` +
+              `<ul>` +
+              (this.knownThemes[params.themeId]?.templates ?? [])
+                .map(
+                  (template) =>
+                    `<li><a href="/${params.themeId}/${template.id}">${template.name}</a></li>`
+                )
+                .join("") +
+              `</ul>` +
+              `</body></html>`
+          );
         }
-        return reply.send(
-          `<html>${headCode}<body>` +
-            `<a href="/">BACK</a>` +
-            `<h1>Templates for theme [${params.themeId}]: </h1><br/>` +
-            `<ul>` +
-            (this.knownThemes[params.themeId]?.templates ?? [])
-              .map(
-                (template) =>
-                  `<li><a href="/${params.themeId}/${template.id}">${template.name}</a></li>`
-              )
-              .join("") +
-            `</ul>` +
-            `</body></html>`
-        );
-      });
+      );
       const getTemplateFormBase = (
         themeId: string,
         emailId: string,
@@ -263,29 +296,32 @@ export class Plugin extends BSBService<Config, Events> {
           `</body></html>`
         );
       };
-      this.fastify.get("/:themeId/:emailId/", async (reply, params) => {
-        if (this.knownThemes[params.themeId] === undefined) {
-          return reply.redirect(`/`);
+      this.fastify.get(
+        this.getTypedPath(":themeId/:emailId/"),
+        async (reply, params) => {
+          if (this.knownThemes[params.themeId] === undefined) {
+            return reply.redirect(`/`);
+          }
+          const template = this.knownThemes[params.themeId].templates.find(
+            (t) => t.id === params.emailId
+          );
+          if (template === undefined) {
+            return reply.redirect(`/${params.themeId}`);
+          }
+          reply.header("Content-Type", "text/html");
+          return reply.send(
+            getTemplateFormBase(
+              params.themeId,
+              params.emailId,
+              template,
+              null,
+              ""
+            )
+          );
         }
-        const template = this.knownThemes[params.themeId].templates.find(
-          (t) => t.id === params.emailId
-        );
-        if (template === undefined) {
-          return reply.redirect(`/${params.themeId}`);
-        }
-        reply.header("Content-Type", "text/html");
-        return reply.send(
-          getTemplateFormBase(
-            params.themeId,
-            params.emailId,
-            template,
-            null,
-            ""
-          )
-        );
-      });
-      this.fastify.post(
-        "/:themeId/:emailId/",
+      );
+      this.fastify.post<"/:themeId/:emailId/">(
+        this.getTypedPath(":themeId/:emailId/"),
         async (reply, params, query, body) => {
           if (this.knownThemes[params.themeId] === undefined) {
             return reply.redirect(`/`);

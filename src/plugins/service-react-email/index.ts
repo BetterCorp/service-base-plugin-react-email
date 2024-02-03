@@ -12,7 +12,7 @@ import { join } from "path";
 export class ReactEmail extends BSBServiceClient<Plugin> {
   public readonly pluginName = "service-react-email";
   public readonly initBeforePlugins?: string[] | undefined;
-  public readonly initAfterPlugins?: string[] | undefined;
+  public readonly initAfterPlugins = ["service-react-email"];
   public readonly runBeforePlugins?: string[] | undefined;
   public readonly runAfterPlugins?: string[] | undefined;
   dispose?(): void;
@@ -46,10 +46,18 @@ export class ReactEmail extends BSBServiceClient<Plugin> {
   };
   async init(): Promise<void> {
     await this.doRegister();
+    if (this.autoLoadTemplates !== undefined)
+      await this.registerEmailTemplates(this.autoLoadTemplates);
   }
-  public constructor(context: BSBService, themeId: string) {
+  private autoLoadTemplates: string | undefined;
+  public constructor(
+    context: BSBService,
+    themeId: string,
+    templatesDir?: string
+  ) {
     super(context);
     this.themeId = themeId;
+    this.autoLoadTemplates = templatesDir;
   }
 
   public async registerTemplate<T extends z.ZodSchema<any, any, any>>(
