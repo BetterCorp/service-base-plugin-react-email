@@ -1,0 +1,45 @@
+{
+  "name": "@bettercorp/service-base-plugin-react-email",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "url": "git+https://github.com/BetterCorp/service-base-plugin-react-email.git"
+  },
+  "scripts": {
+    "build": "rm -rfv ./lib && tsc",
+    "dev": "nodemon --config node_modules/@bettercorp/service-base/development/nodemon.json",
+    "start": "ts-node node_modules/@bettercorp/service-base/lib/cli.js",
+    "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx"
+  },
+  "files": [
+    "lib/**/*"
+  ],
+  "main": "lib/index.js",
+  "version": "2.0.25",
+  "bsb_project": true,
+  "devDependencies": {
+    "@fastify/formbody": "^7.4.0",
+    "@types/assert": "^1.5.10",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.5",
+    "@types/yargs": "^17.0.32",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "chai": "^4.3.10",
+    "eslint": "^8.56.0",
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@bettercorp/service-base": "^8.5.57",
+    "@bettercorp/service-base-plugin-fastify": "^2.3.6",
+    "@bettercorp/tools": "^3.7.0",
+    "@react-email/components": "0.0.14",
+    "@react-email/render": "0.0.12",
+    "react": "^18.2.0",
+    "react-email": "2.0.0",
+    "typed-html": "^3.0.1"
+  }
+}

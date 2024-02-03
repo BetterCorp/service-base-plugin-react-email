@@ -1,0 +1,19 @@
+default:
+  services:
+    email:
+      plugin: service-react-email
+      enabled: true
+    email-examples:
+      plugin: service-react-email-examples
+      enabled: true
+    web:
+      plugin: service-fastify
+      package: "@bettercorp/service-base-plugin-fastify"
+      enabled: true
+      config:
+        health: false
+        host: "0.0.0.0"
+        type: http
+        httpToHttpsRedirect: true
+        httpPort: 3750
+        httpsPort: 3000

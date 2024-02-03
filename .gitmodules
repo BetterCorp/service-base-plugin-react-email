@@ -1,0 +1,3 @@
+[submodule "src/plugins/service-whmcs/node-whmcs"]
+	path = src/plugins/service-whmcs/node-whmcs
+	url = git@github.com:apocas/node-whmcs.git
