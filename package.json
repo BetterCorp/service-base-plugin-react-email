@@ -40,7 +40,6 @@
     "@react-email/components": "0.0.14",
     "@react-email/render": "0.0.12",
     "react": "^18.2.0",
-    "react-email": "2.0.0",
-    "typed-html": "^3.0.1"
+    "react-email": "2.0.0"
   }
 }
